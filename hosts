@@ -1,0 +1,9 @@
+#The site wide list of mongodb servers
+
+# the mongo servers need a mongod_port variable set, and they must not conflict.
+[mongo_servers]
+192.168.62.149 host_name=mongodb1.cluster1.ahmed.com
+192.168.62.157 host_name=mongodb2.cluster1.ahmed.com
+192.168.62.158 host_name=mongodb3.cluster1.ahmed.com
+192.168.62.159 host_name=mongodb4.cluster1.ahmed.com
+192.168.62.160 host_name=mongodb5.cluster1.ahmed.com

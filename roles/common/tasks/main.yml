@@ -1,0 +1,113 @@
+---
+# This Playbook runs all the common plays in the deployment
+# More on this can be found here.
+# https://juriansluiman.nl/article/151/managing-ssh-known-hosts-with-ansible
+
+#
+# Creating ETC hosts file and setting up hostnames for each server.
+#
+
+
+- name: Create the hosts file for all machines
+  template: src=hosts.j2 dest=/etc/hosts
+
+- name: Update Hostname (/etc/sysconfig/network)
+  lineinfile: dest=/etc/sysconfig/network regexp='^HOSTNAME' line="HOSTNAME={{ host_name }}" state=present
+
+- name: Setting hostname without restarting
+  command: hostname {{ host_name }}
+
+#
+# Creating MongoDB User.
+# password: hdadmin@123
+
+- name: Create the mongod user
+  user: name={{ mongodb_username }}  password={{ mongodb_password }} comment="MongoD"
+
+#
+# Creating Below directories.
+#
+# mongodb_lognbin_prefix: /lognbin
+# mongodb_datadir_prefix: /dataDB
+# mongodb_journalidx_prefix: /journalidx
+
+- name: Create the lognbin directory
+  file: path={{ mongodb_lognbin_prefix }}/mglog recurse=yes owner={{ mongodb_username }} group={{ mongodb_username }} state=directory
+
+- name: Create the data directory
+  file: path={{ mongodb_datadir_prefix }}/db recurse=yes owner={{ mongodb_username }} group={{ mongodb_username }} state=directory
+
+- name: Create the journalidx directory
+  file: path={{ mongodb_journalidx_prefix }} owner={{ mongodb_username }} group={{ mongodb_username }} state=directory
+
+#
+# Disable Transparent pages
+# More Details:
+#   https://docs.mongodb.com/v3.2/tutorial/transparent-huge-pages/
+#
+
+- name: Copy the huge pages disablement script
+  copy: src=files/disable-transparent-hugepages dest=/etc/init.d/disable-transparent-hugepages mode=0755 backup=no force=yes
+
+- name: Make sure the script runs at boot time#
+  command: /usr/sbin/update-rc.d disable-transparent-hugepages defaults
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name:  Make sure the script runs at boot time [REDHAT]
+  command: chkconfig --add disable-transparent-hugepages
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+#
+# Creating nproc file for mongo DB
+#
+- name: Creating a place holder for nproc.
+  file: path=/etc/security/limits.d/90-mongodb-nproc.conf state=touch
+
+- name: Creating nproc file for mongo db.
+  copy: src=files/90-mongodb-nproc.conf.j2 dest=/etc/security/limits.d/90-mongodb-nproc.conf mode=0644
+
+#
+# Getting file and unarchive
+#
+
+- name: Downloading file from mongodb.org
+  copy: src=files/mongodb-linux-x86_64-ubuntu1604-3.2.12.tgz dest={{ mongodb_lognbin_prefix }}/
+
+- name: unarchive the files in location.
+  unarchive:
+    creates: '{{ mongodb_lognbin_prefix }}/mongodb-linux-x86_64-ubuntu1604-3.2.12'
+    src: '{{ mongodb_lognbin_prefix }}/mongodb-linux-x86_64-ubuntu1604-3.2.12.tgz'
+    dest: '{{ mongodb_lognbin_prefix }}/'
+    owner: '{{ mongodb_username }}'
+    group: '{{ mongodb_username }}'
+
+- name: Update permission on the directory.
+  file:
+    path: '{{ mongodb_lognbin_prefix }}/mongodb-linux-x86_64-ubuntu1604-3.2.12'
+    owner: '{{ mongodb_username }}'
+    group: '{{ mongodb_username }}'
+
+- name: Rename directory. We will create a symbolic link here.
+  file: src={{ mongodb_lognbin_prefix }}/mongodb-linux-x86_64-ubuntu1604-3.2.12 dest={{ mongodb_lognbin_prefix }}/mgbin state=link owner={{ mongodb_username }} group={{ mongodb_username }}
+
+- name: Creating a HA file with permissions.
+  copy:
+    src: 'files/HAkey'
+    dest: '{{ mongodb_lognbin_prefix }}/'
+    mode: 0400
+    owner: '{{ mongodb_username }}'
+    group: '{{ mongodb_username }}'
+
+- name: Creating noauth file in {{ mongodb_lognbin_prefix }} directory.
+  template:
+    src: noauth.conf.j2
+    dest: '{{ mongodb_lognbin_prefix }}/noauth.conf'
+    owner: '{{ mongodb_username }}'
+    group: '{{ mongodb_username }}'
+
+- name: Creating mauth file in {{ mongodb_lognbin_prefix }} directory.
+  template:
+    src: mauth.conf.j2
+    dest: '{{ mongodb_lognbin_prefix }}/mauth.conf'
+    owner: '{{ mongodb_username }}'
+    group: '{{ mongodb_username }}'

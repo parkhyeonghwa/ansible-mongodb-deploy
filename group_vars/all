@@ -1,0 +1,8 @@
+
+
+mongodb_lognbin_prefix: /lognbin
+mongodb_datadir_prefix: /dataDB
+mongodb_journalidx_prefix: /journalidx
+
+mongodb_username: mongoadmin
+mongodb_password: $6$rounds=40000$1qjG/hovLZOkcerH$CK4Or3w8rR3KabccowciZZUeD.nIwR/VINUa2uPsmGK/2xnmOt80TjDwbof9rNvnYY6icCkdAR2qrFquirBtT1

@@ -1,0 +1,23 @@
+/* below is the format of mauth.conf and noauth.conf where we need to change the replicaset name from "morpset305" to "hbset305"
+   File mauth.conf and noauth.conf format will be same except noauth.conf will not have security: section*/
+storage:
+   dbPath: "/dataDB/db"
+   directoryPerDB: true
+   wiredTiger:
+      engineConfig:
+         directoryForIndexes: true
+   journal:
+        enabled: true
+systemLog:
+   destination: file
+   path: "/lognbin/mglog/mongodb.log"
+processManagement:
+   fork: true
+net:
+   port: 27127
+replication:
+   oplogSizeMB: 35840
+   replSetName: "morpset305"
+security:
+   keyFile: "/lognbin/HAkey"
+   authorization: enabled
